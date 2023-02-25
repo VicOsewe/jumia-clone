@@ -14,7 +14,10 @@ import (
 	"github.com/gorilla/mux"
 
 	database "github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/infrastructure/database/postgres"
+	sms "github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/infrastructure/services/sms/ait"
+
 	"github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/presentation/rest"
+	"github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/usecases/onboarding"
 )
 
 const (
@@ -42,8 +45,10 @@ func HealthStatusCheck(w http.ResponseWriter, r *http.Request) {
 
 // InitHandlers initializes all the handlers dependencies
 func InitHandlers() *rest.RestFulAPIs {
-	_ = database.NewJumiaDB()
-	return rest.NewRestFulAPIs()
+	db := database.NewJumiaDB()
+	sms := sms.NewAITService()
+	onboarding := onboarding.NewOnboarding(db, sms)
+	return rest.NewRestFulAPIs(onboarding)
 
 }
 

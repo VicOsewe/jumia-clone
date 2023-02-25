@@ -5,7 +5,8 @@ import (
 	"log"
 
 	"github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/application"
-	"github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/domain/dto"
+	"github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/domain/dao"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -29,7 +30,10 @@ func (j *JumiaDB) checkPreConditions() {
 }
 
 func runMigrations(db *gorm.DB) {
-	tables := []interface{}{}
+	tables := []interface{}{
+		&dao.OTPPayload{},
+		&dao.User{},
+	}
 
 	for _, table := range tables {
 		if err := db.AutoMigrate(table); err != nil {
@@ -56,16 +60,27 @@ func Init() *gorm.DB {
 	return db
 }
 
-func (db *JumiaDB) CreateUser(user *dto.User) (*dto.User, error) {
+func (db *JumiaDB) CreateUser(user *dao.User) (*dao.User, error) {
 	if user == nil {
-		return nil, fmt.Errorf("nil contact")
+		return nil, fmt.Errorf("nil user")
 	}
 
 	if err := db.DB.Create(user).Error; err != nil {
 		return nil, fmt.Errorf(
-			"can't create a new marketing record: err: %v",
+			"can't create a new user record: err: %v",
 			err,
 		)
 	}
 	return user, nil
+}
+
+func (db *JumiaDB) SaveOTP(otp *dao.OTPPayload) error {
+	if otp == nil {
+		return fmt.Errorf("nil otp")
+	}
+
+	if err := db.DB.Create(otp).Error; err != nil {
+		return fmt.Errorf("can't save otp record: %v", err)
+	}
+	return nil
 }
