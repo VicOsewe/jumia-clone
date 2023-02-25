@@ -12,6 +12,9 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+
+	database "github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/infrastructure/database/postgres"
+	"github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/presentation/rest"
 )
 
 const (
@@ -21,7 +24,7 @@ const (
 // Router sets up the ginContext router
 func Router(ctx context.Context) (*mux.Router, error) {
 	r := mux.NewRouter()
-	// h := InitHandlers()
+	_ = InitHandlers()
 
 	r.Path("/health").HandlerFunc(HealthStatusCheck)
 	// RESTRoutes := r.PathPrefix("/api/v1").Subrouter()
@@ -38,7 +41,9 @@ func HealthStatusCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 // InitHandlers initializes all the handlers dependencies
-func InitHandlers() {
+func InitHandlers() *rest.RestFulAPIs {
+	_ = database.NewJumiaDB()
+	return rest.NewRestFulAPIs()
 
 }
 
