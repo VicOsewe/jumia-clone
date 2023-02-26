@@ -27,11 +27,13 @@ const (
 // Router sets up the ginContext router
 func Router(ctx context.Context) (*mux.Router, error) {
 	r := mux.NewRouter()
-	_ = InitHandlers()
+	h := InitHandlers()
 
 	r.Path("/health").HandlerFunc(HealthStatusCheck)
-	// RESTRoutes := r.PathPrefix("/api/v1").Subrouter()
-
+	RESTRoutes := r.PathPrefix("/api/v1").Subrouter()
+	RESTRoutes.Path("/user").Methods(http.MethodPost, http.MethodOptions).HandlerFunc(h.CreateUser())
+	RESTRoutes.Path("/check_phone_number").Methods(http.MethodPost, http.MethodOptions).HandlerFunc(h.CheckIfPhoneNumberExists())
+	RESTRoutes.Path("/check_email").Methods(http.MethodPost, http.MethodOptions).HandlerFunc(h.CheckIfEmailExists())
 	return r, nil
 }
 

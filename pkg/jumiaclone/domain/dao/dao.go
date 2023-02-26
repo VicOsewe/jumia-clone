@@ -22,7 +22,7 @@ type User struct {
 	PhoneNumber string `json:"phone_number,omitempty"`
 	Email       string `json:"email,omitempty"`
 	Verified    bool   `json:"verified,omitempty"`
-	PassWord    string `json:"pass_word,omitempty"`
+	PassWord    string `json:"password,omitempty"`
 }
 
 // BeforeCreate User hook ensures that before a new session is created, a new unique UUID

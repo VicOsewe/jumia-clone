@@ -74,6 +74,34 @@ func (db *JumiaDB) CreateUser(user *dao.User) (*dao.User, error) {
 	return user, nil
 }
 
+func (db *JumiaDB) GetUserByPhoneNumber(phoneNumber string) (*dao.User, error) {
+
+	user := dao.User{}
+
+	if err := db.DB.Where(
+		&dao.User{
+			PhoneNumber: phoneNumber,
+		}).
+		Find(&user).
+		Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (db *JumiaDB) GetUserByEmail(email string) (*dao.User, error) {
+	user := dao.User{}
+	if err := db.DB.Where(
+		&dao.User{
+			Email: email,
+		}).
+		Find(&user).
+		Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (db *JumiaDB) SaveOTP(otp *dao.OTPPayload) error {
 	if otp == nil {
 		return fmt.Errorf("nil otp")

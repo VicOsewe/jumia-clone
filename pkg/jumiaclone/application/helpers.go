@@ -8,7 +8,10 @@ import (
 	"hash"
 	"log"
 	"os"
+	"regexp"
+	"strings"
 
+	"github.com/ttacon/libphonenumber"
 	"github.com/xdg-go/pbkdf2"
 )
 
@@ -22,11 +25,13 @@ const (
 	// alphanumeric character used for generation of a `salt`
 	alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	// Default min length of the pin
-	minPinLength = 4
-	// Default max length of the pin
-	maxPinLength = 6
-	// Default length of a generated pin
-	generatedPinLength = 4
+	// minPinLength = 4
+	// // Default max length of the pin
+	// maxPinLength = 6
+	// // Default length of a generated pin
+	// generatedPinLength = 4
+
+	defaultRegion = "KE"
 )
 
 // DefaultHashFunction ...
@@ -97,4 +102,34 @@ func ComparePIN(rawPwd string, salt string, encodedPwd string, options *Options)
 		return encodedPwd == hex.EncodeToString(pbkdf2.Key([]byte(rawPwd), []byte(salt), defaultIterations, DefaultKeyLen, DefaultHashFunction))
 	}
 	return encodedPwd == hex.EncodeToString(pbkdf2.Key([]byte(rawPwd), []byte(salt), options.Iterations, options.KeyLen, options.HashFunction))
+}
+
+// IsMSISDNValid uses regular expression to validate the a phone number
+func IsMSISDNValid(msisdn string) bool {
+	if len(msisdn) < 10 {
+		return false
+	}
+	reKen := regexp.MustCompile(`^(?:254|\+254|0)?((7|1)(?:(?:[129][0-9])|(?:0[0-8])|(4[0-1]))[0-9]{6})$`)
+	re := regexp.MustCompile(`^(?:(?:\(?(?:00|\+)([1-4]\d\d|[1-9]\d?)\)?)?[\-\.\ \\\/]?)?((?:\(?\d{1,}\)?[\-\.\ \\\/]?){0,})(?:[\-\.\ \\\/]?(?:#|ext\.?|extension|x)[\-\.\ \\\/]?(\d+))?$`)
+	if !reKen.MatchString(msisdn) {
+		return re.MatchString(msisdn)
+	}
+	return reKen.MatchString(msisdn)
+}
+
+// NormalizeMSISDN validates the input phone number.
+// For valid phone numbers, it normalizes them to international format
+// e.g +2547........
+func NormalizeMSISDN(msisdn string) (*string, error) {
+	if !IsMSISDNValid(msisdn) {
+		return nil, fmt.Errorf("invalid phone number: %s", msisdn)
+	}
+	num, err := libphonenumber.Parse(msisdn, defaultRegion)
+	if err != nil {
+		return nil, err
+	}
+	formatted := libphonenumber.Format(num, libphonenumber.INTERNATIONAL)
+	cleaned := strings.ReplaceAll(formatted, " ", "")
+	cleaned = strings.ReplaceAll(cleaned, "-", "")
+	return &cleaned, nil
 }

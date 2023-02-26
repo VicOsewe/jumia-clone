@@ -21,6 +21,8 @@ const (
 // OnboardingUsecase is a representation of the usecase's contract
 type OnboardingUsecase interface {
 	CreateUser(user *dao.User) (*dao.User, error)
+	CheckIfEmailExists(email string) (*dao.User, error)
+	CheckIfPhoneNumberExists(phoneNumber string) (*dao.User, error)
 }
 
 // Onboarding sets up the onboarding's usecase layer with all the necessary dependencies
@@ -35,7 +37,7 @@ func NewOnboarding(repo interfaces.Repository, sms services.SMS) *Onboarding {
 	on := &Onboarding{
 		totpOpts: totp.GenerateOpts{
 			Issuer:      application.MustGetEnvVar("ISSUER"),
-			AccountName: application.MustGetEnvVar("ACCOUNTNAME"),
+			AccountName: application.MustGetEnvVar("ACCOUNT_NAME"),
 		},
 		repository: repo,
 		sms:        sms,
@@ -54,6 +56,25 @@ func (o *Onboarding) checkPreConditions() {
 }
 
 func (o *Onboarding) CreateUser(user *dao.User) (*dao.User, error) {
+
+	us, err := o.repository.GetUserByPhoneNumber(user.PhoneNumber)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user by phone number: %v", err)
+
+	}
+	if len(us.ID) != 0 {
+		return nil, fmt.Errorf("phone number is already in use by another user")
+	}
+
+	use, err := o.repository.GetUserByEmail(user.Email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user by email: %v", err)
+
+	}
+
+	if len(use.ID) != 0 {
+		return nil, fmt.Errorf("phone number is already in use by another user")
+	}
 
 	_, encryptedPassword := application.EncryptPIN(user.PassWord, nil)
 
@@ -90,8 +111,8 @@ func (o *Onboarding) CreateUser(user *dao.User) (*dao.User, error) {
 	return userResponse, nil
 }
 
-func (s *Onboarding) GenerateOTP() (string, error) {
-	key, err := totp.Generate(s.totpOpts)
+func (o *Onboarding) GenerateOTP() (string, error) {
+	key, err := totp.Generate(o.totpOpts)
 	if err != nil {
 		return "", errors.Wrap(err, "generateOTP")
 	}
@@ -100,4 +121,20 @@ func (s *Onboarding) GenerateOTP() (string, error) {
 		return "", errors.Wrap(err, "generateOTP > GenerateCode")
 	}
 	return code, nil
+}
+
+func (o *Onboarding) CheckIfPhoneNumberExists(phoneNumber string) (*dao.User, error) {
+	user, err := o.repository.GetUserByPhoneNumber(phoneNumber)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user by phone number: %v", err)
+	}
+	return user, nil
+}
+
+func (o *Onboarding) CheckIfEmailExists(email string) (*dao.User, error) {
+	user, err := o.repository.GetUserByEmail(email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user by email: %v", err)
+	}
+	return user, nil
 }
