@@ -32,7 +32,7 @@ func (j *JumiaDB) checkPreConditions() {
 func runMigrations(db *gorm.DB) {
 	tables := []interface{}{
 		&dao.OTPPayload{},
-		&dao.User{},
+		&dao.UserProfile{},
 	}
 
 	for _, table := range tables {
@@ -60,7 +60,7 @@ func Init() *gorm.DB {
 	return db
 }
 
-func (db *JumiaDB) CreateUser(user *dao.User) (*dao.User, error) {
+func (db *JumiaDB) CreateUser(user *dao.UserProfile) (*dao.UserProfile, error) {
 	if user == nil {
 		return nil, fmt.Errorf("nil user")
 	}
@@ -74,12 +74,12 @@ func (db *JumiaDB) CreateUser(user *dao.User) (*dao.User, error) {
 	return user, nil
 }
 
-func (db *JumiaDB) GetUserByPhoneNumber(phoneNumber string) (*dao.User, error) {
+func (db *JumiaDB) GetUserByPhoneNumber(phoneNumber string) (*dao.UserProfile, error) {
 
-	user := dao.User{}
+	user := dao.UserProfile{}
 
 	if err := db.DB.Where(
-		&dao.User{
+		&dao.UserProfile{
 			PhoneNumber: phoneNumber,
 		}).
 		Find(&user).
@@ -89,10 +89,10 @@ func (db *JumiaDB) GetUserByPhoneNumber(phoneNumber string) (*dao.User, error) {
 	return &user, nil
 }
 
-func (db *JumiaDB) GetUserByEmail(email string) (*dao.User, error) {
-	user := dao.User{}
+func (db *JumiaDB) GetUserByEmail(email string) (*dao.UserProfile, error) {
+	user := dao.UserProfile{}
 	if err := db.DB.Where(
-		&dao.User{
+		&dao.UserProfile{
 			Email: email,
 		}).
 		Find(&user).
@@ -100,6 +100,18 @@ func (db *JumiaDB) GetUserByEmail(email string) (*dao.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (db *JumiaDB) UpdateUser(user *dao.UserProfile) (*dao.UserProfile, error) {
+	if err := db.DB.Where(
+		&dao.UserProfile{
+			PhoneNumber: user.PhoneNumber,
+		}).
+		Updates(user).
+		Error; err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (db *JumiaDB) SaveOTP(otp *dao.OTPPayload) error {
@@ -111,4 +123,25 @@ func (db *JumiaDB) SaveOTP(otp *dao.OTPPayload) error {
 		return fmt.Errorf("can't save otp record: %v", err)
 	}
 	return nil
+}
+
+func (db *JumiaDB) GetOTP(phoneNumber, otp string) (*dao.OTPPayload, error) {
+	OTPPayload := dao.OTPPayload{}
+	if err := db.DB.Where(&dao.OTPPayload{PhoneNumber: phoneNumber, OTPPassword: otp}).Find(&OTPPayload).Error; err != nil {
+		return nil, err
+	}
+	return &OTPPayload, nil
+}
+
+func (db *JumiaDB) UpdateOTP(otp *dao.OTPPayload) (*dao.OTPPayload, error) {
+	if err := db.DB.Where(
+		&dao.OTPPayload{
+			PhoneNumber: otp.PhoneNumber,
+			IsValid:     true,
+		}).
+		Updates(otp).
+		Error; err != nil {
+		return nil, err
+	}
+	return otp, nil
 }

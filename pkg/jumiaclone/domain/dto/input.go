@@ -10,6 +10,7 @@ type Recipient struct {
 
 // SMS returns the message details of a recipient
 type SMS struct {
+	Message    string      `json:"Message"`
 	Recipients []Recipient `json:"Recipients"`
 }
 

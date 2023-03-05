@@ -8,7 +8,7 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-func validateCreateUserInput(input *dao.User) (*dao.User, error) {
+func validateCreateUserInput(input *dao.UserProfile) (*dao.UserProfile, error) {
 	if input == nil {
 		return nil, fmt.Errorf("nil payload provided")
 	}
@@ -31,4 +31,22 @@ func validateCreateUserInput(input *dao.User) (*dao.User, error) {
 	input.PhoneNumber = *normalizedPhoneNumber
 
 	return input, nil
+}
+
+func validateOtpPayload(otp *dao.OTPPayload) (*dao.OTPPayload, error) {
+	if otp == nil {
+		return nil, fmt.Errorf("nil payload provided")
+	}
+	if otp.PhoneNumber == "" {
+		return nil, fmt.Errorf("invalid request data, ensure you have the phone_number field")
+	}
+	if otp.OTPPassword == "" {
+		return nil, fmt.Errorf("invalid request data, ensure you have the otp_password field")
+	}
+	normalizedPhoneNumber, err := application.NormalizeMSISDN(otp.PhoneNumber)
+	if err != nil {
+		return nil, err
+	}
+	otp.PhoneNumber = *normalizedPhoneNumber
+	return otp, nil
 }

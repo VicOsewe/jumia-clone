@@ -15,6 +15,7 @@ import (
 
 	"github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/application"
 	"github.com/VicOsewe/Jumia-clone/pkg/jumiaclone/domain/dto"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -58,7 +59,6 @@ func (a *AITService) SendSMS(message, to string) (*dto.SendMessageResponse, erro
 	values.Set("username", application.MustGetEnvVar("AIT_ENVIRONMENT"))
 	values.Set("to", to)
 	values.Set("message", message)
-	values.Set("from", application.MustGetEnvVar("AIT_SENDER_ID"))
 
 	smsURL := GetSmsURL(a.Env)
 	headers := make(map[string]string)
@@ -96,6 +96,7 @@ func (a *AITService) SendSMS(message, to string) (*dto.SendMessageResponse, erro
 				Error(),
 		)
 	}
+	logrus.Print("message", smsMessageResponse.SMSMessageData.Message)
 
 	return smsMessageResponse, nil
 
