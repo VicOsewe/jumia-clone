@@ -34,6 +34,7 @@ func Router(ctx context.Context) (*mux.Router, error) {
 	RESTRoutes.Path("/user").Methods(http.MethodPost, http.MethodOptions).HandlerFunc(h.CreateUser())
 	RESTRoutes.Path("/check_phone_number").Methods(http.MethodPost, http.MethodOptions).HandlerFunc(h.CheckIfPhoneNumberExists())
 	RESTRoutes.Path("/check_email").Methods(http.MethodPost, http.MethodOptions).HandlerFunc(h.CheckIfEmailExists())
+	RESTRoutes.Path("/verify_otp").Methods(http.MethodPost, http.MethodOptions).HandlerFunc(h.VerifyPhoneNumber())
 	return r, nil
 }
 

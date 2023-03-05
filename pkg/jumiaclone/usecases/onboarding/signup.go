@@ -15,14 +15,17 @@ import (
 )
 
 const (
-	otpMessage = "%s is your Jumia verification codeS"
+	otpMessage = "%s is your Jumia verification code"
 )
 
 // OnboardingUsecase is a representation of the usecase's contract
 type OnboardingUsecase interface {
-	CreateUser(user *dao.User) (*dao.User, error)
-	CheckIfEmailExists(email string) (*dao.User, error)
-	CheckIfPhoneNumberExists(phoneNumber string) (*dao.User, error)
+	CreateUser(user *dao.UserProfile) (*dao.UserProfile, error)
+	VerifyPhoneNumber(otp *dao.OTPPayload) (bool, error)
+	CheckIfEmailExists(email string) (*dao.UserProfile, error)
+	CheckIfPhoneNumberExists(phoneNumber string) (*dao.UserProfile, error)
+	SignInByEmail(email, password string) (*dao.UserProfile, error)
+	SingInByPhoneNumber(phoneNumber, password string) (*dao.UserProfile, error)
 }
 
 // Onboarding sets up the onboarding's usecase layer with all the necessary dependencies
@@ -55,7 +58,7 @@ func (o *Onboarding) checkPreConditions() {
 	}
 }
 
-func (o *Onboarding) CreateUser(user *dao.User) (*dao.User, error) {
+func (o *Onboarding) CreateUser(user *dao.UserProfile) (*dao.UserProfile, error) {
 
 	us, err := o.repository.GetUserByPhoneNumber(user.PhoneNumber)
 	if err != nil {
@@ -76,10 +79,11 @@ func (o *Onboarding) CreateUser(user *dao.User) (*dao.User, error) {
 		return nil, fmt.Errorf("phone number is already in use by another user")
 	}
 
-	_, encryptedPassword := application.EncryptPIN(user.PassWord, nil)
+	salt, encryptedPassword := application.EncryptPIN(user.PassWord, nil)
 
-	user.Verified = false
+	user.IsVerified = false
 	user.PassWord = encryptedPassword
+	user.Salt = salt
 	userResponse, err := o.repository.CreateUser(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %v", err)
@@ -123,7 +127,7 @@ func (o *Onboarding) GenerateOTP() (string, error) {
 	return code, nil
 }
 
-func (o *Onboarding) CheckIfPhoneNumberExists(phoneNumber string) (*dao.User, error) {
+func (o *Onboarding) CheckIfPhoneNumberExists(phoneNumber string) (*dao.UserProfile, error) {
 	user, err := o.repository.GetUserByPhoneNumber(phoneNumber)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch user by phone number: %v", err)
@@ -131,10 +135,44 @@ func (o *Onboarding) CheckIfPhoneNumberExists(phoneNumber string) (*dao.User, er
 	return user, nil
 }
 
-func (o *Onboarding) CheckIfEmailExists(email string) (*dao.User, error) {
+func (o *Onboarding) CheckIfEmailExists(email string) (*dao.UserProfile, error) {
 	user, err := o.repository.GetUserByEmail(email)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch user by email: %v", err)
 	}
 	return user, nil
+}
+
+func (o *Onboarding) VerifyPhoneNumber(otp *dao.OTPPayload) (bool, error) {
+	// TODO:ensure user exists????
+	otpPayload, err := o.repository.GetOTP(otp.PhoneNumber, otp.OTPPassword)
+	if err != nil {
+		return false, fmt.Errorf("failed to get otp from database: %v", err)
+	}
+	if len(otpPayload.OTPPassword) == 0 {
+		return false, fmt.Errorf("no matching verification codes found")
+	}
+	if !otpPayload.IsValid {
+		return false, fmt.Errorf("verification code is not valid")
+	}
+	user := dao.UserProfile{
+		PhoneNumber: otp.PhoneNumber,
+		IsVerified:  true,
+	}
+
+	_, err = o.repository.UpdateUser(&user)
+	if err != nil {
+		return false, err
+	}
+
+	otpPay := dao.OTPPayload{
+		PhoneNumber: otp.PhoneNumber,
+		IsValid:     false,
+	}
+	_, err = o.repository.UpdateOTP(&otpPay)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
